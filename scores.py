@@ -7,9 +7,9 @@ SD_TOKEN = os.getenv("SD_TOKEN")
 
 def get_scores_decisions_data(siren):
     """Récupère les données depuis l'API Scores & Décisions"""
-    url = f"https://ws.scores-decisions.com/api/V1/service/entreprise/act/getIndiScore/{siren}"
+    url = f"https://ws.scores-decisions.com/api/V1/service/entreprise/act/getIndiScore/?siren={siren}"
     headers = {
-        "Authorization": f"Basic {SD_TOKEN}",
+        "Authorization": f"Basic {base64.b64encode(SD_TOKEN.encode()).decode()}",
         "Accept": "application/json"
     }
     
@@ -19,10 +19,11 @@ def get_scores_decisions_data(siren):
             print(f"Erreur S&D : {res.status_code}")
             return {}
         
-        data = res.json().get("body", {})
+        data = res.json()
+        financial_data = data.get("bilans", [{}])[0] if data.get("bilans") else {}
         return {
             "indiscore20": data.get("Indiscore20"),
-            "indiscore20_secteur": data.get("Indiscore20_secteur"),
+            "indiscore20_secteur": data.get("Indiscore20Secteur"),
             "AnalyseDirigeance": data.get("AnalyseDirigeance"),
             "ScoreConfor": data.get("ScoreConfor"),
             "AnalyseConfor": data.get("AnalyseConfor"),
