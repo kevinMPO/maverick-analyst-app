@@ -19,7 +19,7 @@ def get_scores_decisions_data(siren):
             print(f"Erreur S&D : {res.status_code}")
             return {}
         
-        data = res.json()
+        data = res.json().get("body", {})
         return {
             "indiscore20": data.get("Indiscore20"),
             "indiscore20_secteur": data.get("Indiscore20_secteur"),
@@ -28,10 +28,10 @@ def get_scores_decisions_data(siren):
             "AnalyseConfor": data.get("AnalyseConfor"),
             "encours_sd": data.get("encours"),
             "classeRisque": data.get("classeRisque"),
-            "FondsPr": data.get("Bilans", [{}])[0].get("FondsPr"),
-            "EBE": data.get("Bilans", [{}])[0].get("EBE"),
-            "DelaiCli": data.get("Bilans", [{}])[0].get("DelaiCli"),
-            "DelaiFour": data.get("Bilans", [{}])[0].get("DelaiFour"),
+            "FondsPr": data.get("FondsPr"),
+            "EBE": data.get("EBE"),
+            "DelaiCli": data.get("DelaiCli"),
+            "DelaiFour": data.get("DelaiFour"),
             "Afdcc1": data.get("Afdcc1"),
             "ConanH": data.get("ConanH")
         }
