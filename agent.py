@@ -26,7 +26,7 @@ Donne-moi une recommandation :
 """
 
     output = replicate_client.run(
-        "meta/meta-llama-3-70b-instruct",
+        "meta/llama-4-maverick-instruct",
         input={"prompt": prompt, "max_new_tokens": 500}
     )
 
