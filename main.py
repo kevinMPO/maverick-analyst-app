@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import streamlit as st
-from societeinfo import get_company_data
+from societeinfo import get_company_data, get_financial_data
 from scores import get_scores_decisions_data
 from agent import analyze_company
 
