@@ -1,3 +1,4 @@
+
 import requests
 import os
 
@@ -5,32 +6,67 @@ API_KEY = os.getenv("SOCIETEINFO_API_KEY")
 print(f"API Key loaded: {'Yes' if API_KEY else 'No'}")
 
 def get_company_data(query):
-    url = "https://societeinfo.com/app/rest/api/v2/company"
-    params = {"key": API_KEY, "q": query, "limit": 1}
-    try:
-        res = requests.get(url, params=params)
-        print(f"API Response status: {res.status_code}")
-        print(f"API Response content: {res.text[:200]}")  # Affiche les 200 premiers caractères
+    # Supporte la recherche par SIREN/SIRET ou nom d'entreprise
+    url = "https://societeinfo.com/app/rest/api/v2/company.json"
+    
+    # Si le query est numérique (SIREN/SIRET), on utilise registration_number
+    if query.isdigit():
+        params = {
+            "key": API_KEY,
+            "registration_number": query
+        }
+    else:
+        # Sinon on fait une recherche par nom
+        params = {
+            "key": API_KEY,
+            "q": query
+        }
 
-        if res.status_code == 200:
-            data = res.json().get("companies", [])[0]
-            return {
-                "nom": data.get("name"),
-                "siren": data.get("siren"),
-                "creation": data.get("establishment", {}).get("dateCreation"),
-                "forme": data.get("legalForm"),
-                "dirigeant": data.get("lastDirigeant"),
-                "ca": data.get("financials", {}).get("last", {}).get("ca", "ND"),
-                "resultat": data.get("financials", {}).get("last", {}).get("result", "ND"),
-                "capitaux": data.get("financials", {}).get("last", {}).get("capitauxPropres", "ND"),
-                "solvabilite": data.get("financialRating", {}).get("score", "ND"),
-                "anciennete": data.get("years", "ND")
-            }
-        else:
-            print(f"Erreur API: Status {res.status_code}")
+    try:
+        res = requests.get(
+            url, 
+            params=params, 
+            headers={"Accept": "application/json"}, 
+            timeout=5
+        )
+        print(f"API Response status: {res.status_code}")
+        print(f"API Response content: {res.text[:200]}")  # Log des 200 premiers caractères
+
+        if res.status_code == 401:
+            print("Erreur d'authentification: Clé API invalide")
             return None
-    except requests.exceptions.RequestException as e:
-        print(f"Erreur de requête: {str(e)}")
+        elif res.status_code == 404:
+            print("Entreprise non trouvée")
+            return None
+        elif res.status_code == 429:
+            print("Trop de requêtes, veuillez réessayer plus tard")
+            return None
+            
+        res.raise_for_status()
+        data = res.json()
+        
+        if not data.get("success") or "result" not in data:
+            print("Format de réponse invalide")
+            return None
+
+        org = data["result"]["organization"]
+        fin = data["result"].get("financials", {})
+
+        return {
+            "nom": org.get("name"),
+            "siren": org.get("registration_number"),
+            "forme": org.get("legal", {}).get("name"),
+            "creation": org.get("creation_date"),
+            "capital": org.get("capital"),
+            "ca": fin.get("last_sales", "ND"),
+            "resultat": fin.get("last_profit", "ND"),
+            "effectif": fin.get("last_staff", "ND"),
+            "solvabilite": org.get("risk", {}).get("risk_level_description", "ND"),
+            "anciennete": org.get("age", "ND")
+        }
+
+    except requests.RequestException as e:
+        print(f"Erreur de connexion à Societeinfo: {str(e)}")
         return None
     except Exception as e:
         print(f"Erreur inattendue: {str(e)}")
