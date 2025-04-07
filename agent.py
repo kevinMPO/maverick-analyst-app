@@ -40,15 +40,27 @@ Tu es un analyste crédit IA de niveau senior. Tu dois rendre une **synthèse co
 
 📊 **2. Analyse Financière Avancée**
 
+Performance & Rentabilité :
 - CA : {company_data.get('ca')} € | Évolution : {company_data.get('evolution_ca', 'ND')}%
-- Résultat : {company_data.get('resultat')} € | Marge : {company_data.get('marge_nette', 'ND')}%
-- EBE : {company_data.get('EBE')} € | % CA : {company_data.get('taux_ebe', 'ND')}%
+- Résultat net : {company_data.get('resultat')} € | Marge nette : {company_data.get('marge_nette', 'ND')}%
+- EBE : {company_data.get('EBE')} € | Marge EBE : {company_data.get('taux_ebe', 'ND')}%
+- ROE : {company_data.get('return_on_equity', 'ND')}% | ROA : {company_data.get('return_on_assets', 'ND')}%
+
+Structure Financière :
 - Fonds propres : {company_data.get('FondsPr')} € | Gearing : {company_data.get('gearing', 'ND')}
 - Trésorerie : {company_data.get('tresorerie', 'ND')} € | BFR : {company_data.get('bfr', 'ND')} €
-- Score Altman : {company_data.get('altman_score', 'ND')} | Conan-Holder : {company_data.get('conan_holder', 'ND')}
-- FR : {company_data.get('FR')} € / BFR : {company_data.get('BFR')} €
+- Ratio liquidité : {company_data.get('current_ratio', 'ND')} | Quick ratio : {company_data.get('quick_ratio', 'ND')}
+- Taux endettement : {company_data.get('debt_ratio', 'ND')}%
+
+Gestion & Exploitation :
 - Délai clients : {company_data.get('DelaiCli')} j | Fournisseurs : {company_data.get('DelaiFour')} j
-- Afdcc1 : {company_data.get('Afdcc1')} | ConanH : {company_data.get('ConanH')}
+- Rotation stocks : {company_data.get('stock_rotation', 'ND')} j
+- BFR en jours CA : {company_data.get('working_capital_days', 'ND')} j
+
+Scores & Prédictifs :
+- Score Altman : {company_data.get('altman_score', 'ND')} | Conan-Holder : {company_data.get('conan_holder', 'ND')}
+- Afdcc1 : {company_data.get('Afdcc1')} | Score Z : {company_data.get('z_score', 'ND')}
+- Probabilité défaut : {company_data.get('default_probability', 'ND')}%
 
 ---
 
