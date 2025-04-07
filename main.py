@@ -1,4 +1,7 @@
 
+from dotenv import load_dotenv
+load_dotenv()  # Charge les variables d'environnement depuis .env
+
 import streamlit as st
 from societeinfo import get_company_data
 from agent import analyze_company

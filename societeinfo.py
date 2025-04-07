@@ -3,11 +3,14 @@ import requests
 import os
 
 API_KEY = os.getenv("SOCIETEINFO_API_KEY")
+print(f"API Key loaded: {'Yes' if API_KEY else 'No'}")
 
 def get_company_data(query):
     url = "https://societeinfo.com/app/rest/api/v2/company"
     params = {"key": API_KEY, "q": query, "limit": 1}
     res = requests.get(url, params=params)
+    print(f"API Response status: {res.status_code}")
+    print(f"API Response content: {res.text[:200]}")  # Affiche les 200 premiers caractères
 
     if res.status_code == 200:
         data = res.json().get("companies", [])[0]
