@@ -3,7 +3,7 @@ import requests
 import base64
 import os
 
-SD_TOKEN = os.getenv("SD_TOKEN", "a21hbWVyaXdzOmk1T0tkUXZu")
+SD_TOKEN = os.getenv("SD_TOKEN", "kmameriws:i5OKdQvn")
 
 def get_scores_decisions_data(siren):
     """Récupère les données depuis l'API Scores & Décisions"""
