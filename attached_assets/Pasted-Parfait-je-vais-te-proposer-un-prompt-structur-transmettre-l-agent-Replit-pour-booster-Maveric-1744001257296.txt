@@ -1,0 +1,275 @@
+Parfait, je vais te proposer un prompt structuré à transmettre à l'agent Replit pour booster Maverick. Je vais inclure un plan étape par étape avec les APIs à appeler, le type de données attendues, et comment enrichir l'analyse IA pour qu'elle devienne bluffante.
+Je reviens vers toi avec un plan précis dans quelques instants.
+
+# Plan d’implémentation de l’agent IA **Maverick** 🔍💼
+
+## Architecture générale de la solution  
+L’agent **Maverick** est composé de quatre modules Python interconnectés, chacun responsable d’une source de données ou d’une fonction spécifique :  
+
+- **`societeinfo.py`** – Récupère les données légales et d’identification de l’entreprise (nom, SIREN, forme juridique, adresse, etc.) ainsi que quelques données financières de base via l’API SocieteInfo.  
+- **`scores.py`** – Interroge l’API **Scores & Décisions** pour obtenir des indicateurs financiers détaillés (ex: chiffres d’affaires, résultats, capitaux propres) et le **score de solvabilité** ou de risque de l’entreprise.  
+- **`news.py`** – Agrège les actualités récentes concernant l’entreprise : événements stratégiques via l’API SocieteInfo *Get Events* et éventuellement recherches web (Bing API ou SerpAPI) pour compléter par des news publiques.  
+- **`agent.py`** – Orchestrateur principal qui appelle les trois sources ci-dessus, formate toutes les informations collectées dans un **prompt** structuré, puis envoie ce prompt au modèle LLM (LLaMA-4 Maverick via l’API Replicate) pour générer la **synthèse finale en Markdown**.  
+
+Cette architecture modulaire permet de séparer clairement les responsabilités et de faciliter la maintenance du code.
+
+## Intégration des sources de données 🔗
+
+### 1. Données légales et identification – *SocieteInfo API*  
+Le module `societeinfo.py` utilise l’endpoint **Get Company** de SocieteInfo pour obtenir les informations légales de l’entreprise. L’appel se fait en HTTP GET sur l’URL suivant (en fournissant le SIREN) :  
+
+```
+GET https://societeinfo.com/app/rest/api/v2/company.json/<SIREN>?key=<VOTRE_API_KEY>
+```  
+
+**Champs JSON clés à exploiter** dans la réponse:  
+- `organization.name` – Dénomination de l’entreprise (raison sociale).  
+- `organization.registration_number` – SIREN de l’entreprise.  
+- `organization.legal.name` – Forme juridique (e.g. “SARL”, “SASU…”).  
+- `organization.creation_date` – Date de création de l’entreprise.  
+- `organization.capital` – Capital social déclaré (€).  
+- `organization.address` – Adresse du siège (street, city, code postal…).  
+- `organization.risk.risk_level_description` – Description du niveau de risque légal (**ex.** *“Pas de risque identifié”*).  
+- `result.financials.last_sales` – Dernier chiffre d’affaires connu.  
+- `result.financials.last_profit` – Dernier résultat net connu.  
+- `result.financials.last_staff` – Effectif salarié (dernier effectif déclaré).  
+
+Le code ci-dessous illustre l’appel à l’API SocieteInfo et l’extraction des champs souhaités :  
+
+```python
+import requests, os
+
+API_KEY = os.getenv("SOCIETEINFO_API_KEY")
+def get_company_data(siren):
+    url = f"https://societeinfo.com/app/rest/api/v2/company.json/{siren}"
+    params = {"key": API_KEY}
+    res = requests.get(url, params=params, timeout=5)
+    data = res.json()
+    if not data.get("success"):
+        return None  # Gérer les erreurs (404, 401, etc.)
+    org = data["result"]["organization"]
+    fin = data["result"].get("financials", {})
+    company_info = {
+        "nom": org.get("name"),
+        "siren": org.get("registration_number"),
+        "forme_juridique": org.get("legal", {}).get("name"),
+        "creation": org.get("creation_date"),
+        "capital_social": org.get("capital"),
+        "adresse": f"{org.get('address', {}).get('street', '')}, "
+                   f"{org.get('address', {}).get('postal_code', '')} {org.get('address', {}).get('city', '')}",
+        "ca": fin.get("last_sales"),         # Chiffre d'affaires
+        "resultat": fin.get("last_profit"),  # Résultat net
+        "effectif": fin.get("last_staff"),
+        "risque_legale": org.get("risk", {}).get("risk_level_description")
+    }
+    return company_info
+```  
+
+*Remarque :* Le SIREN peut être fourni directement. SocieteInfo permet également une recherche par nom (`q=`) si on ne possède pas le SIREN, mais ici on part du SIREN. Il faut inclure la clé API (`key`) dans les paramètres de requête. Il est conseillé de stocker cette clé dans une variable d’environnement pour ne pas l’exposer dans le code (comme illustré avec `os.getenv`).  
+
+### 2. Données financières & score de solvabilité – *Scores & Décisions API*  
+Le module `scores.py` va compléter les informations financières via le service **Scores & Décisions**. Cet API (endpoint `getIndiScore`) fournit un **scoring financier** et des indicateurs clés sur la santé de l’entreprise. L’appel se fait aussi en GET, avec authentification Basic (identifiants fournis par Scores & Décisions) :  
+
+```
+GET https://ws.scores-decisions.com/api/V1/service/entreprise/act/getIndiScore/<SIREN>
+Authorization: Basic <token_base64>
+Accept: application/json
+```  
+
+**Champs JSON clés attendus** (exemple typique, à adapter selon la structure réelle renvoyée) :  
+- `score` ou `notation` – Score de solvabilité de l’entreprise (par ex. une note sur 10 ou une classe de risque).  
+- `risk_level` – Niveau de risque chiffré ou catégorisé (faible, modéré, élevé).  
+- `failure_probability` – Probabilité de défaillance à un an (si fourni).  
+- `recommended_credit_limit` – Encours crédit recommandé (montant € maximal conseillé pour les créances).  
+- `financials` – Détails financiers récents, par ex: 
+  - `turnover` (ou `ca`) – Chiffre d’affaires dernier exercice.  
+  - `net_income` (ou `resultat_net`) – Résultat net dernier exercice.  
+  - `equity` (ou `capitaux_propres`) – Capitaux propres.  
+  - `debt` – Endettement total ou ratio d’endettement.  
+- `payment_incidents` – Indicateurs d’incidents de paiement (par ex. nombre de procédures, incidents bancaires, s’il y en a).  
+
+Un exemple de code pour appeler l’API S&D et parser la réponse :  
+
+```python
+import requests, os
+from base64 import b64encode
+
+SD_USER = os.getenv("SD_USER")       # Identifiant API Scores & Décisions
+SD_PASS = os.getenv("SD_PASS")       # Mot de passe API
+AUTH_TOKEN = b64encode(f"{SD_USER}:{SD_PASS}".encode()).decode()  # encodage Basic Auth
+
+def get_scores_data(siren):
+    url = f"https://ws.scores-decisions.com/api/V1/service/entreprise/act/getIndiScore/{siren}"
+    headers = {"Authorization": f"Basic {AUTH_TOKEN}", "Accept": "application/json"}
+    res = requests.get(url, headers=headers, timeout=5)
+    res.raise_for_status()
+    data = res.json()
+    # Extraction des champs principaux (en adaptant aux clés exactes de l’API)
+    scores_info = {
+        "score": data.get("score"),  # score chiffré ou classe
+        "risque_financier": data.get("risk_level") or data.get("risk"),  
+        "probabilite_defaillance": data.get("failure_probability"),
+        "limite_credit": data.get("recommended_credit_limit"),
+        "ca_dernier_ex": data.get("financials", {}).get("turnover"),
+        "resultat_net": data.get("financials", {}).get("net_income"),
+        "capitaux_propres": data.get("financials", {}).get("equity"),
+    }
+    return scores_info
+```  
+
+Ici aussi, on récupère les identifiants API depuis des variables d’environnement. Le dictionnaire `scores_info` est fusionné avec les données de `societeinfo.py` pour former un tableau de bord complet de l’entreprise. Par exemple, on peut combiner ainsi :  
+
+```python
+company_data = get_company_data(siren)
+scores_data = get_scores_data(siren)
+if company_data and scores_data:
+    company_data.update(scores_data)
+```  
+
+Dès lors, `company_data` contiendra tous les éléments légaux et financiers (dont le **score** S&D et les **capitaux propres** si disponibles) à injecter dans le prompt.  
+
+### 3. Événements stratégiques récents – *SocieteInfo Events API*  
+Pour enrichir l’analyse stratégique, le module `news.py` peut récupérer les **événements récents** de l’entreprise via l’endpoint *Get Events* de SocieteInfo. Cet appel renvoie les actualités majeures (levées de fonds, acquisitions, nominations, etc.) liées à l’entreprise, à partir de sources médias ou communiqués. Requête HTTP typique :  
+
+```
+GET https://societeinfo.com/app/rest/api/v2/events.json/<SIREN>?key=<API_KEY>
+```  
+
+**Champs JSON importants** dans la section `events` du résultat :  
+- `theme` – Catégorie de l’événement (ex: “Développement”, “Fusion, acquisition…”, “Recrutement”).  
+- `sub_theme_label` – Précision sur le type d’événement (ex: “Innovation, nouveaux contrats”, “Levée de fonds”, “Nomination”, etc.).  
+- `news_summary` – Résumé de l’actualité en quelques phrases.  
+- `article_title` – Titre de l’article/source, pouvant servir pour résumer.  
+- `news_delivery_date` – Date de la collecte de l’info (souvent proche de la date de publication).  
+
+Le code suivant montre comment appeler l’API et extraire quelques événements :  
+
+```python
+def get_recent_events(siren):
+    url = f"https://societeinfo.com/app/rest/api/v2/events.json/{siren}"
+    params = {"key": API_KEY}
+    res = requests.get(url, params=params, timeout=5)
+    data = res.json()
+    events_list = []
+    for ev in data.get("result", {}).get("events", [])[:3]:  # on limite aux 3 plus récents
+        date = ev.get("news_delivery_date")
+        summary = ev.get("news_summary") or ev.get("article_title")
+        theme = ev.get("sub_theme_label")
+        if date and summary:
+            events_list.append(f"{date} – {theme}: {summary}")
+    return events_list
+```  
+
+On récupère ici jusqu’à 3 événements récents, en formatant chaque élément avec la date, le thème et un court résumé. Ces informations seront intégrées au prompt pour que l’IA en tienne compte dans son analyse (*ex:* mention d’une levée de fonds récente, qui peut influencer l’évaluation du risque ou des opportunités).  
+
+### 4. (Optionnel) Recherches web d’actualités – *Bing News API / SerpAPI*  
+En complément des événements fournis par SocieteInfo, il est envisageable d’effectuer une recherche d’actualité sur le Web pour capter d’autres informations (articles de presse récents, communiqués, etc.). Ceci est optionnel car souvent les événements clés sont déjà couverts par SocieteInfo. Si on souhaite l’ajouter :  
+
+- Utiliser par exemple **Bing News Search API** ou **SerpAPI** en passant le nom de l’entreprise en requête.  
+- Filtrer les résultats par date récente et pertinence.  
+- Extraire le titre et un bref extrait des 1 ou 2 articles les plus pertinents non déjà couverts.  
+
+*Exemple (Bing Search via requête HTTP)* :  
+
+```python
+BING_API_KEY = os.getenv("BING_API_KEY")
+def search_news(company_name):
+    url = "https://api.bing.microsoft.com/v7.0/news/search"
+    params = {"q": company_name, "mkt": "fr-FR", "sortBy": "Date"}
+    headers = {"Ocp-Apim-Subscription-Key": BING_API_KEY}
+    res = requests.get(url, params=params, headers=headers)
+    results = res.json().get("value", [])[:2]
+    news_snippets = [f"{item['name']} – {item['description']}" for item in results]
+    return news_snippets
+```  
+
+On pourrait fusionner ces résultats avec ceux de `get_recent_events` pour avoir une vision complète des dernières nouvelles de l’entreprise. **Attention** toutefois à ne pas surcharger le prompt : sélectionner les informations vraiment pertinentes pour la synthèse (par exemple, un fait marquant comme une acquisition importante ou un changement de direction).  
+
+## Construction du prompt et génération de la synthèse 📋🤖
+
+Une fois toutes les données collectées, le module `agent.py` va formater le **prompt** à envoyer au modèle LLaMA-4 Maverick (via l’API Replicate). L’objectif est de fournir à l’IA un contexte complet et de demander une synthèse structurée, **dans un style professionnel, percutant et orienté décision**. 
+
+### Composition du prompt  
+Le prompt peut être construit sous forme de *bullet points* listant les informations factuelles, suivi d’une consigne pour la recommandation. Par exemple :  
+
+```python
+company = company_data  # dict combiné de societeinfo, scores & events
+events_text = "\\n".join([f"- {ev}" for ev in company.get('evenements', [])])
+
+prompt = f"""
+Tu es un analyste financier IA. Voici les données d’une entreprise :
+
+- **Nom** : {company['nom']}
+- **SIREN** : {company['siren']}
+- **Forme juridique** : {company['forme_juridique']}
+- **Ancienneté** : {company['creation']} (date de création)
+- **Chiffre d’affaires** : {company['ca']} €
+- **Résultat net** : {company['resultat']} €
+- **Capitaux propres** : {company['capitaux_propres']} €
+- **Score de solvabilité (Scores & Décisions)** : {company['score']} ({company['risque_financier']})
+- **Événements récents** :
+{events_text if events_text else '- RAS'}
+
+Analyse ces informations et fournis une synthèse **structurée en Markdown** avec :  
+- Un aperçu du profil et de la santé financière de l’entreprise  
+- Une évaluation du **risque crédit** (faible, moyen ou élevé)  
+- Un conseil sur le **délai de paiement** à accorder (immédiat, 15j, 30j, 60j)  
+- D’éventuelles **opportunités stratégiques** ou points d’**alerte** à noter  
+
+Le ton doit être professionnel, concis et percutant, adapté à un directeur financier ou commercial. Utilise des émojis pour mettre en avant les points clés et des bullet points pour la lisibilité.
+"""
+```  
+
+Quelques points importants dans ce prompt :  
+- On liste d’abord toutes les **données factuelles** collectées (profil de l’entreprise, chiffres clés, score…). Cela donne du contexte au modèle.  
+- On inclut les **événements récents** sous forme de liste à puces (ou "RAS" = Rien À Signaler si aucun événement notable) pour informer l’IA des dernières actualités.  
+- Ensuite, on **demande explicitement** la forme de la réponse attendue : une synthèse structurée en Markdown, avec emojis et bullet points, et en couvrant les quatre volets demandés (profil financier, risque, paiement, opportunités/alertes).  
+
+Ainsi formé, le prompt sera très détaillé, ce qui aide le modèle à produire une réponse riche et contextuelle.  
+
+### Appel du modèle LLaMA-4 via Replicate  
+Avec le prompt prêt, `agent.py` utilise le client Replicate pour exécuter le modèle hébergé. Par exemple, en Python avec la librairie `replicate` :  
+
+```python
+import replicate, os
+REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
+model = replicate.Client(api_token=REPLICATE_API_TOKEN).run(
+    "meta/llama-4-maverick-instruct",  # Identifiant du modèle Maverick sur Replicate
+    input={"prompt": prompt, "max_new_tokens": 500}
+)
+result_text = "".join(model)  # concatène les morceaux de sortie si nécessaire
+```  
+
+Ici on spécifie un `max_new_tokens` pour limiter la longueur de la réponse. Le modèle devrait renvoyer du **Markdown** déjà formaté (puisqu’on l’a instruit en ce sens). On obtient la synthèse finalisée dans `result_text`.  
+
+Enfin, l’agent peut afficher ou retourner ce `result_text` à l’utilisateur final. Sur **Replit**, on s’assurera que le contenu Markdown rendu affiche bien les emojis et la mise en forme (généralement, Replit peut rendre le Markdown ou on peut le prévisualiser).  
+
+## Exemple de rendu enrichi 🎯✨
+
+Supposons qu’on analyse l’entreprise *ABC Tech* (SIREN fictif **012345678**). Après collecte des données, le modèle IA Maverick pourrait produire une synthèse comme celle-ci :  
+
+🚀 **Profil & Situation**  
+- **ABC Tech** (SIREN 012345678) est une PME créée en 2015, spécialisée dans le développement de logiciels SaaS. L’entreprise est en croissance, avec 50 employés et un siège à Paris.  
+
+💰 **Performance Financière**  
+- Chiffre d’affaires 2022 : **5,2 M€** (en hausse de +10% vs 2021).  
+- Résultat net 2022 : **+300 K€** (rentable, marge nette ~5.8%).  
+- Capitaux propres : **1,2 M€**, ce qui témoigne d’une structure financière saine (bonne solvabilité).  
+
+⚖️ **Solvabilité & Risque**  
+- *Scores & Décisions* attribue un **score de solvabilité de 8/10**, indiquant un **risque faible** de défaut.  
+- Trésorerie positive et aucune procédure collective en cours. Les indicateurs ne montrent pas d’alerte majeure sur la solvabilité.  
+
+📰 **Événements Récents**  
+- 2024-11-10 – **Levée de fonds** : ABC Tech a levé 2 M€ pour accélérer son expansion à l’international.  
+- 2024-06-05 – **Partenariat** : Signature d’un contrat stratégique avec le groupe XYZ pour la distribution de sa solution en Europe.  
+
+✅ **Recommandations**  
+- **Risque crédit** : Faible. Vous pouvez accorder des conditions de paiement sans crainte excessive.  
+- **Délai de paiement conseillé** : *30 jours* fin de mois paraît approprié compte tenu de la solidité financière d’ABC Tech.  
+- **Opportunité stratégique** : Entreprise en plein essor – renforcer le partenariat commercial pourrait être bénéfique.  
+- **Points d’alerte** : RAS notable, si ce n’est à surveiller la bonne utilisation des fonds levés (investissements en cours).  
+
+---  
+
+Dans cet exemple de rendu, on voit que la synthèse est structurée en sections avec des emojis en en-tête, et utilise des bullet points pour les détails. Le style est **clair, factuel et orienté décision** : un dirigeant peut en un coup d’œil évaluer le profil de l’entreprise, son risque et les actions à envisager. En combinant ainsi **données chiffrées** et **commentaires analytiques**, l’agent Maverick fournit une aide à la décision percutante digne d’un copilote *Top Gun* 🛫🏆. 

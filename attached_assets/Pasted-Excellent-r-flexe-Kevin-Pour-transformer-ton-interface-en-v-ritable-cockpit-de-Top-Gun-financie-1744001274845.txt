@@ -1,0 +1,85 @@
+Excellent réflexe, Kevin 🔥! Pour transformer ton interface en véritable cockpit de Top Gun financier, voici un **brainstorm structuré** à transmettre à l'agent Replit, étape par étape, pour intégrer cette **phrase à trou dynamique et engageante** :
+
+---
+
+## 🎯 Objectif
+Offrir à l'utilisateur une interface où il peut personnaliser son analyse avec des éléments contextuels réels : rôle de l'entreprise (client/fournisseur), historique de paiement, encours, etc. Cela transforme l'analyse IA en **recommandation décisionnelle ultra personnalisée**.
+
+---
+
+## ✅ À transmettre à l'agent Replit
+
+### 🧩 Étape 1 : Ajouter des champs dans le front Streamlit
+Ajoute dans `main.py` ces nouveaux inputs pour compléter la phrase à trou :
+
+```python
+relation = st.selectbox("Quel est le rôle de l'entreprise ?", ["Client", "Fournisseur"])
+historique = st.selectbox("Historique de paiement (12 mois)", ["Aucune expérience", "Nombreux retards", "Bonne expérience de paiement"])
+encours = st.number_input("Montant de l'encours (€)", min_value=0)
+delai_recommande = st.selectbox("Délai de paiement préconisé", ["Comptant", "30 jours", "60 jours"])
+```
+
+---
+
+### 🧠 Étape 2 : Enrichir le `prompt` dans `agent.py`
+Ajoute les données utilisateur dans le `prompt` :
+
+```python
+    prompt = f"""
+Tu es un analyste crédit IA. Tu dois formuler une recommandation en t'appuyant sur les données suivantes :
+
+📄 Informations Entreprise :
+- Nom : {company_data['nom']}
+- SIREN : {company_data['siren']}
+- Forme juridique : {company_data['forme']}
+- Chiffre d'affaires : {company_data['ca']}
+- Résultat net : {company_data['resultat']}
+- Capitaux propres : {company_data['capitaux']}
+- Solvabilité : {company_data['solvabilite']}
+- Ancienneté : {company_data['anciennete']}
+- Effectif : {company_data['effectif']}
+
+📌 Contexte commercial :
+- Cette entreprise est mon : {relation}
+- Historique de paiement : {historique}
+- Montant de l'encours actuel : {encours}€
+- Délai de paiement recommandé : {delai_recommande}
+
+💡 Ta mission :
+Rédige une recommandation synthétique et professionnelle à destination d’un Credit Manager :
+- Précise le niveau de risque crédit
+- Donne un avis sur les délais de paiement adaptés
+- Conclus par un conseil synthétique et clair, en une phrase.
+
+Commence ta réponse par : "Je recommande que..."
+"""
+```
+
+---
+
+### ✨ Étape 3 : Ajouter la **phrase à trou dynamique**
+Affiche ensuite dans Streamlit cette **reformulation automatique**, comme un résumé lisible et actionnable :
+
+```python
+st.markdown(f"""
+📝 **Phrase à trou générée :**
+
+> Je dois travailler avec la société **{company_data['nom']} ({company_data['siren']})** qui sera mon **{relation.lower()}** pour laquelle j’ai un historique de paiement sur 12 mois : **{historique.lower()}**.  
+Le montant de l’encours est de **{encours} €**.  
+Je préconise un délai de paiement de **{delai_recommande}**.  
+📢 **Recommandation IA** : {recommendation}
+""")
+```
+
+---
+
+## 💥 Bonus pour la suite
+Si tu veux aller encore plus loin :
+- 🎯 Ajouter un score visuel (jauge, émoji, couleur rouge/vert)
+- 🧠 Affiner avec des APIs comme Scores & Décisions (tu l’as déjà mentionnée, parfait !)
+- 🌐 Intégrer des actus récentes via Bing Search ou l’API `get-events` de Societeinfo
+- 📊 Ajouter un graphe d’évolution (chiffre d'affaires / capitaux / BFR)
+
+---
+
+Souhaites-tu que je t’écrive le code complet `main.py` avec cette UX premium incluse ?
