@@ -1,0 +1,123 @@
+Voici exactement ce que tu dois indiquer à l’agent Replit, étape par étape, pour intégrer l’API Scores & Décisions, enrichir company_data, et adapter le prompt pour Maverick avec une réponse ultra structurée 👇
+
+✅ Étape 1 : Ajouter une requête HTTP à l’API Scores & Décisions
+👉 Dans un fichier scores_decisions.py ou directement dans ton script principal, ajouter ceci :
+
+python
+Copier
+Modifier
+import requests
+import base64
+
+SD_TOKEN = "a21hbWVyaXdzOmk1T0tkUXZu"  # ton token API encodé en base64
+
+def get_scores_decisions_data(siren):
+    url = f"https://ws.scores-decisions.com/api/V1/service/entreprise/act/getIndiScore/{siren}"
+    headers = {
+        "Authorization": f"Basic {SD_TOKEN}",
+        "Accept": "application/json"
+    }
+    res = requests.get(url, headers=headers)
+    if res.status_code != 200:
+        print("Erreur S&D :", res.status_code)
+        return {}
+    
+    data = res.json()
+    # Extraction des champs utiles
+    result = {
+        "indiscore20": data.get("Indiscore20"),
+        "indiscore20_secteur": data.get("Indiscore20_secteur"),
+        "AnalyseDirigeance": data.get("AnalyseDirigeance"),
+        "ScoreConfor": data.get("ScoreConfor"),
+        "AnalyseConfor": data.get("AnalyseConfor"),
+        "encours": data.get("encours"),
+        "classeRisque": data.get("classeRisque"),
+        "FondsPr": data.get("Bilans", [{}])[0].get("FondsPr"),
+        "EBE": data.get("Bilans", [{}])[0].get("EBE"),
+        "DelaiCli": data.get("Bilans", [{}])[0].get("DelaiCli"),
+        "DelaiFour": data.get("Bilans", [{}])[0].get("DelaiFour"),
+        "Afdcc1": data.get("Afdcc1"),
+        "ConanH": data.get("ConanH")
+    }
+    return result
+✅ Étape 2 : Ajouter ces données au company_data
+Dans ton orchestrateur principal (main.py, app.py ou autre) :
+
+python
+Copier
+Modifier
+from scores_decisions import get_scores_decisions_data
+
+# après avoir récupéré les données de societeinfo
+scores_data = get_scores_decisions_data(siren)
+if scores_data:
+    company_data.update(scores_data)
+✅ Étape 3 : Adapter le prompt pour que Maverick structure sa réponse
+Tu modifies ton prompt comme suit dans agent.py :
+
+python
+Copier
+Modifier
+prompt = f"""
+Tu es un analyste crédit IA expert. Tu dois émettre une synthèse d'analyse crédit claire, lisible et structurée pour un décideur financier.
+
+Voici les données de l’entreprise à analyser :
+
+📌 Profil entreprise
+- Nom : {company_data['nom']}
+- SIREN : {company_data['siren']}
+- Forme : {company_data['forme_juridique']}
+- CA : {company_data['ca']} €
+- Résultat : {company_data['resultat']} €
+- Capitaux propres : {company_data['capitaux']} €
+- EBE : {company_data.get('EBE')}
+- Fonds propres : {company_data.get('FondsPr')}
+- Classe de risque : {company_data.get('classeRisque')}
+- Score S&D : {company_data.get('indiscore20')} (secteur : {company_data.get('indiscore20_secteur')})
+
+📊 Contexte commercial
+- Rôle : {company_data['relation']}
+- Historique paiement : {company_data['historique']}
+- Encours envisagé : {company_data['encours']} €
+- Délai souhaité : {company_data['delai_souhaite']}
+
+🧠 Autres indicateurs
+- Afdcc1 : {company_data.get('Afdcc1')}
+- ConanH : {company_data.get('ConanH')}
+- Délai client moyen : {company_data.get('DelaiCli')}
+- Délai fournisseur moyen : {company_data.get('DelaiFour')}
+
+🔎 Dirigeance & conformité
+- Analyse dirigeance : {company_data.get('AnalyseDirigeance')}
+- Conformité : {company_data.get('AnalyseConfor')}
+- Score conformité : {company_data.get('ScoreConfor')}
+- Info paiements : {company_data.get('infoPaiement', 'ND')}
+
+📬 Dernières actualités (veille marché) :
+{company_data.get('evenements_formates', '- Aucune info récente disponible')}
+
+---
+
+✍️ Ta mission :
+Structure ta réponse en **4 blocs Markdown** :
+1. 🎯 Score de risque : évalue le score sur 10 et indique un code couleur (vert = faible risque, orange = moyen, rouge = élevé)
+2. 📊 Analyse financière : résume la performance financière avec CA, résultat, EBE, BFR, capitaux, ratios, etc.
+3. ⏱️ Recommandation de paiement : indique si le paiement doit être comptant / 30j / 60j avec une justification claire.
+4. 🔐 Analyse de la gouvernance & conformité : synthétise la dirigeance, conformité et encours.
+
+En bonus : termine par une **phrase “veille marché”** si des événements récents sont détectés.
+
+Formate ta réponse de manière **pro** et **impactante** pour un DAF.
+"""
+💬 Ce que tu dis à l’agent Replit :
+Ajoute une fonction pour appeler l’API Scores & Décisions (voir le code). Mets à jour company_data avec les données retournées. Adapte le prompt envoyé à Maverick pour qu’il suive une structure à 4 blocs bien définis :
+
+Score de risque (avec code couleur)
+
+Analyse financière
+
+Recommandation délai de paiement
+
+Analyse dirigeance / conformité
+
+Termine par une ligne "veille marché" si on a des événements récents. L’objectif est d’avoir une réponse claire, structurée, professionnelle et exploitable en B2B.
