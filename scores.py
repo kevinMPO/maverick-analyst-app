@@ -20,6 +20,7 @@ def get_scores_decisions_data(siren):
             return {}
         
         data = res.json().get("body", {})
+        bilans = data.get("Bilans", [{}])[0] if data.get("Bilans") else {}
         return {
             "indiscore20": data.get("Indiscore20"),
             "indiscore20_secteur": data.get("Indiscore20Secteur"),
@@ -30,8 +31,8 @@ def get_scores_decisions_data(siren):
             "classeRisque": data.get("classeRisque"),
             "FondsPr": data.get("FondsPr"),
             "EBE": data.get("EBE"),
-            "DelaiCli": data.get("DelaiCli"),
-            "DelaiFour": data.get("DelaiFour"),
+            "DelaiCli": round(float(bilans.get("DelaiCli", 0))) if bilans.get("DelaiCli") else None,
+            "DelaiFour": round(float(bilans.get("DelaiFour", 0))) if bilans.get("DelaiFour") else None,
             "Afdcc1": data.get("Afdcc1"),
             "ConanH": data.get("ConanH")
         }
