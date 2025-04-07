@@ -13,7 +13,22 @@ Tu es un analyste crédit IA, expert en finance B2B. Tu agis comme un analyste s
 - Ancienneté : {company_data.get('anciennete', 'ND')}
 - Chiffre d'affaires : {company_data.get('ca', 'ND')} €
 - Résultat net : {company_data.get('resultat', 'ND')} €
+- EBE : {company_data.get('EBE', 'ND')} €
+- Fonds propres : {company_data.get('FondsPr', 'ND')} €
+- Classe de risque : {company_data.get('classeRisque', 'ND')}
+- Score S&D : {company_data.get('indiscore20', 'ND')} (secteur: {company_data.get('indiscore20_secteur', 'ND')})
 - Score de solvabilité : {company_data.get('solvabilite', 'ND')}
+
+🔍 **Indicateurs Complémentaires**
+- Afdcc1 : {company_data.get('Afdcc1', 'ND')}
+- Conan Holder : {company_data.get('ConanH', 'ND')}
+- Délai client moyen : {company_data.get('DelaiCli', 'ND')} jours
+- Délai fournisseur moyen : {company_data.get('DelaiFour', 'ND')} jours
+
+⚖️ **Gouvernance & Conformité**
+- Analyse dirigeance : {company_data.get('AnalyseDirigeance', 'ND')}
+- Score conformité : {company_data.get('ScoreConfor', 'ND')}
+- Analyse conformité : {company_data.get('AnalyseConfor', 'ND')}
 
 💼 **Contexte Commercial**
 - Cette entreprise est mon : **{company_data['relation']}**

@@ -3,6 +3,7 @@ load_dotenv()
 
 import streamlit as st
 from societeinfo import get_company_data
+from scores import get_scores_decisions_data
 from agent import analyze_company
 
 st.set_page_config(page_title="Maverick Analyste Financier", page_icon="🧠")
@@ -21,7 +22,10 @@ if analyze_button:
     if query:
         with st.spinner("📡 Récupération des données..."):
             data = get_company_data(query)
-
+            if data and data.get('siren'):
+                scores_data = get_scores_decisions_data(data['siren'])
+                data.update(scores_data)
+            
         if data:
             st.success("✅ Données récupérées")
 
