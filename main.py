@@ -1,4 +1,3 @@
-
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -17,33 +16,35 @@ with col1:
 with col2:
     relation = st.selectbox("🤝 Rôle de l'entreprise", ["Client", "Fournisseur"])
 
-if query:
-    with st.spinner("📡 Récupération des données..."):
-        data = get_company_data(query)
-    
-    if data:
-        st.success("✅ Données récupérées")
-        
-        col3, col4 = st.columns(2)
-        with col3:
-            historique = st.selectbox("📊 Historique de paiement (12 mois)", 
-                ["Aucune expérience", "Nombreux retards", "Bonne expérience"])
-            encours = st.number_input("💶 Montant de l'encours (€)", min_value=0)
-        with col4:
-            delai = st.selectbox("⏱️ Délai de paiement souhaité", 
-                ["Comptant", "15 jours", "30 jours", "60 jours"])
+analyze_button = st.button("🔍 Analyser")
+if analyze_button:
+    if query:
+        with st.spinner("📡 Récupération des données..."):
+            data = get_company_data(query)
 
-        data.update({
-            "relation": relation,
-            "historique": historique,
-            "encours": encours,
-            "delai_souhaite": delai
-        })
+        if data:
+            st.success("✅ Données récupérées")
 
-        with st.spinner("🧠 Analyse IA en cours..."):
-            result = analyze_company(data)
-        
-        st.markdown("### 🤖 Recommandation Maverick")
-        st.markdown(result)
-    else:
-        st.error("❌ Impossible de trouver cette entreprise.")
+            col3, col4 = st.columns(2)
+            with col3:
+                historique = st.selectbox("📊 Historique de paiement (12 mois)", 
+                    ["Aucune expérience", "Nombreux retards", "Bonne expérience"])
+                encours = st.number_input("💶 Montant de l'encours (€)", min_value=0)
+            with col4:
+                delai = st.selectbox("⏱️ Délai de paiement souhaité", 
+                    ["Comptant", "15 jours", "30 jours", "60 jours"])
+
+            data.update({
+                "relation": relation,
+                "historique": historique,
+                "encours": encours,
+                "delai_souhaite": delai
+            })
+
+            with st.spinner("🧠 Analyse IA en cours..."):
+                result = analyze_company(data)
+
+            st.markdown("### 🤖 Recommandation Maverick")
+            st.markdown(result)
+        else:
+            st.error("❌ Impossible de trouver cette entreprise.")
