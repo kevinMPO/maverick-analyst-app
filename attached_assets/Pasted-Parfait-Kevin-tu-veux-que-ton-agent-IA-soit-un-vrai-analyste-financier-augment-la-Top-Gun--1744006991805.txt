@@ -1,0 +1,123 @@
+Parfait Kevin, tu veux que ton **agent IA soit un vrai analyste financier augmenté à la Top Gun** 💥. Après analyse complète de :
+
+- ton **code `agent.py`**,  
+- ta **requête API S&D** (Scores & Décisions),  
+- et le **résultat peu convaincant que tu obtiens dans Replit**,  
+
+voici ce qu’il faut dire très concrètement à **l’agent Replit** pour que ça brille **et que ça serve vraiment**. On va injecter les bonnes données + structurer la réponse Maverick façon expert financier.
+
+---
+
+### ✅ 𝗔. Ce que tu dois dire à l’agent Replit (simple et clair)
+
+> **1. Ajouter une requête HTTP à l’API Scores & Décisions**
+>
+> → Crée un fichier `scores.py` s’il n’existe pas.  
+> → Dans ce fichier, ajoute cette fonction pour récupérer les données financières :
+>
+```python
+import requests
+
+def get_score_data(siren):
+    url = f"https://ws.scores-decisions.com/api/V1/service/entreprise/act/getIndiScore/?siren={siren}"
+    headers = {
+        "Authorization": "Basic a21hbWVyaXdzOmk1T0tkUXZu"  # <- Ton token ici
+    }
+    res = requests.get(url, headers=headers)
+    if res.status_code == 200:
+        return res.json().get("body", {})
+    else:
+        print(f"Erreur API Scores & Décisions : {res.status_code}")
+        return {}
+```
+
+---
+
+> **2. Dans `main.py` (ou équivalent), fusionne `company_data` avec le retour Scores & Décisions :**
+
+```python
+from societeinfo import get_company_data
+from scores import get_score_data
+from agent import analyze_company
+
+siren = "521286443"  # SIREN cible
+company_data = get_company_data(siren)
+score_data = get_score_data(siren)
+
+# Fusion des données
+company_data.update(score_data)
+
+result = analyze_company(company_data)
+print(result)
+```
+
+---
+
+> **3. Adapter le prompt dans `agent.py` pour que Maverick analyse comme un expert, avec structure Markdown :**
+
+```python
+prompt = f"""
+Tu es un expert analyste financier IA. Analyse l’entreprise suivante à partir des données fournies. Rends une recommandation détaillée sous forme structurée en 4 blocs, avec des emojis, du markdown, et un langage clair, synthétique et pro.
+
+---
+
+📊 **1. Score de Risque**
+
+- Score : {company_data.get('classeRisque', 'ND')} / 10
+- Indiscore : {company_data.get('Indiscore20', 'ND')} (secteur : {company_data.get('Indiscore20_secteur', 'ND')})
+- Code couleur : {"🟢" if company_data.get('classeRisque', 0) <= 3 else "🟡" if company_data.get('classeRisque', 0) <= 5 else "🔴"}
+
+---
+
+💼 **2. Analyse financière avancée**
+
+- Chiffre d'affaires : {company_data.get('CA', 'ND')} €
+- Résultat net : {company_data.get('resultat', 'ND')} €
+- EBE : {company_data.get('EBE', 'ND')} €
+- Fonds propres : {company_data.get('FondsPr', 'ND')} €
+- FR / BFR : {company_data.get('FR', 'ND')} / {company_data.get('BFR', 'ND')}
+- Délai clients : {company_data.get('DelaiCli', 'ND')} jours / Délai fournisseurs : {company_data.get('DelaiFour', 'ND')} jours
+
+---
+
+🕒 **3. Recommandation Paiement**
+
+- Encours actuel : {company_data.get('encours', 'ND')} €
+- Historique paiement : {company_data.get('infoPaiement', 'ND')}
+- Recommandation IA : 30 jours si bonne expérience, sinon paiement comptant
+- Justification : Basée sur solvabilité, trésorerie, délais et encours
+
+---
+
+👨‍💼 **4. Analyse dirigeance / conformité**
+
+- Dirigeant : {company_data.get('dirigeant', 'ND')}
+- Analyse : {company_data.get('AnalyseDirigeance', 'ND')}
+- Conformité : {company_data.get('AnalyseConfor', 'ND')} (score : {company_data.get('ScoreConfor', 'ND')})
+
+---
+
+📡 **(Optionnel) Veille marché**
+Ajoute une actu récente pertinente si possible via API `get-events` de Societeinfo ou Bing Search (optionnel).
+"""
+```
+
+---
+
+### ✅ 𝗕. Pourquoi ton prompt actuel ne donne rien de "wow"
+
+- Il est **trop court et peu structuré**.
+- Tu n'exploites pas les **données financières riches de Scores & Décisions**.
+- Maverick est puissant… mais il lui faut un **contexte riche, guidé, et bien formaté**.
+
+---
+
+### ✅ 𝗖. Et pour briller en Top Gun ?
+
+👉 Termine par cette phrase dans ton prompt :
+
+> _“Agis comme un analyste qui rédige un rapport pour un comité de crédit. Tu dois être clair, structuré, expert et orienté décision. N’invente pas. Base-toi uniquement sur les données fournies.”_
+
+---
+
+Souhaites-tu que je te génère directement tous les fichiers corrigés (`agent.py`, `scores.py`, etc.) à copier-coller dans Replit ?
