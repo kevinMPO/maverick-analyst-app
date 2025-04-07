@@ -12,7 +12,7 @@ def analyze_company(company_data):
 
 ---
 🎯 **Analyse du Risque**
-- Score S&D : **{company_data.get('indiscore20', 'ND')}** / 10
+- Indiscore S&D : **{company_data.get('indiscore20', 'ND')}** / 20
 - Niveau : **{risk_level}**
 - Classe de risque : {company_data.get('classeRisque', 'ND')}
 - Solvabilité : {company_data.get('solvabilite', 'ND')}
