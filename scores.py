@@ -19,8 +19,7 @@ def get_scores_decisions_data(siren):
             print(f"Erreur S&D : {res.status_code}")
             return {}
         
-        data = res.json()
-        financial_data = data.get("bilans", [{}])[0] if data.get("bilans") else {}
+        data = res.json().get("body", {})
         return {
             "indiscore20": data.get("Indiscore20"),
             "indiscore20_secteur": data.get("Indiscore20Secteur"),
