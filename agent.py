@@ -4,7 +4,9 @@ def analyze_company(company_data):
     try:
         # Construction du prompt contextualisé
         prompt = f"""
-Tu es un analyste crédit IA, expert en finance B2B. Tu agis comme un analyste senior dans un cabinet de notation ou une direction financière. Ta mission est d'émettre une recommandation de crédit claire, fiable et contextualisée à partir des éléments suivants :
+Tu es un analyste crédit IA expert. Tu dois émettre une synthèse d'analyse crédit claire, lisible et structurée pour un décideur financier.
+
+Voici les données de l'entreprise à analyser :
 
 📄 **Profil Entreprise**
 - Nom : {company_data['nom']}
@@ -67,21 +69,48 @@ Commence toujours ta réponse par :
             payment_advice = "Comptant"
 
         # Formatage de la réponse
-        analysis = f"""### 📊 Analyse Financière
-- Chiffre d'affaires : **{company_data.get('ca', 'ND')}** €
-- Résultat net : **{company_data.get('resultat', 'ND')}** €
-- Solvabilité : **{company_data.get('solvabilite', 'ND')}**
+        analysis = f"""---
+🎯 **Score de Risque**
 
-### 🎯 Évaluation du Risque
-- Niveau : **{risk_level}**
-- Délai recommandé : **{payment_advice}**
-- Historique : {company_data['historique']}
+**Score S&D : {company_data.get('indiscore20', 'ND')} / 10**  
+{risk_level}  
+✅ {company_data.get('infoPaiement', 'Aucune information de paiement')}  
+🟠 Classe de risque : {company_data.get('classeRisque', 'ND')}
 
-### 💡 Recommandation
+---
+
+📊 **Analyse Financière Avancée**
+
+- **Chiffre d'affaires** : {company_data.get('ca', 'ND')} €
+- **Résultat net** : {company_data.get('resultat', 'ND')} €
+- **EBE** : {company_data.get('EBE', 'ND')} €
+- **Fonds propres** : {company_data.get('FondsPr', 'ND')} €
+- **Délai clients** : {company_data.get('DelaiCli', 'ND')} jours
+- **Délai fournisseurs** : {company_data.get('DelaiFour', 'ND')} jours
+- **Afdcc1** : {company_data.get('Afdcc1', 'ND')}
+- **ConanH** : {company_data.get('ConanH', 'ND')}
+
+---
+
+⏱️ **Recommandation de Paiement**
+
+**✅ Préconisation** : {payment_advice}  
+**Justification** :  
 {get_recommendation(company_data, risk_level, payment_advice)}
 
-### 🤝 Conclusion
-> **Je recommande que** nous travaillions avec **{company_data['nom']}** en tant que **{company_data['relation'].lower()}** avec un délai de paiement de **{payment_advice}** pour un encours de **{company_data['encours']}** €.
+---
+
+🔐 **Analyse Dirigeance & Conformité**
+
+- **Dirigeance** : {company_data.get('AnalyseDirigeance', 'ND')}  
+- **Conformité** : {company_data.get('AnalyseConfor', 'ND')}  
+- **Score conformité** : {company_data.get('ScoreConfor', 'ND')}
+
+---
+
+📰 **Veille Marché**
+
+> {company_data.get('evenements_formates', 'Aucun événement significatif recensé.')}
 """
         return analysis
 
