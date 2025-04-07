@@ -1,40 +1,40 @@
-import replicate
+
 import os
 
-REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
-
 def analyze_company(company_data):
-    replicate_client = replicate.Client(api_token=REPLICATE_API_TOKEN)
+    """Analyse les données financières d'une entreprise et retourne une synthèse structurée"""
+    
+    try:
+        # Extraction des indicateurs clés
+        ca = company_data['ca']
+        resultat = company_data['resultat'] 
+        solvabilite = company_data['solvabilite']
+        
+        # Logique d'analyse simplifiée
+        if "Pas de risque" in solvabilite:
+            risk_score = "2/10 🟢"
+            payment_terms = "60 jours"
+        elif "Risque faible" in solvabilite:
+            risk_score = "4/10 🟡"
+            payment_terms = "30 jours"
+        else:
+            risk_score = "7/10 🔴"
+            payment_terms = "15 jours"
 
-    prompt = f"""
-Tu es un analyste financier IA de haut niveau, spécialisé dans l’évaluation du risque crédit des PME françaises.
+        # Formatage de la réponse
+        analysis = f"""🔍 Analyse Financière IA — Synthèse
 
-Voici les données de l'entreprise :
+📌 Risque Crédit : {risk_score}
+⏳ Paiement recommandé : {payment_terms}
 
-🏢 Nom : {company_data['nom']}
-🔢 SIREN : {company_data['siren']}
-🏛 Forme juridique : {company_data['forme']}
-📅 Date de création : {company_data['creation']}
-📊 Chiffre d'affaires : {company_data['ca']} €
-💰 Résultat net : {company_data['resultat']} €
-📈 Capitaux propres : {company_data.get('capitaux', 'ND')} €
-👥 Effectif : {company_data.get('effectif', 'ND')}
-💳 Solvabilité : {company_data['solvabilite']}
-📆 Ancienneté estimée : {company_data['anciennete']}
+💬 Commentaire :
+{company_data['nom']} présente un chiffre d'affaires de {ca}€ avec un résultat net de {resultat}€. 
+Le niveau de solvabilité indique : {solvabilite}.
 
-🔍 Analyse attendue :
-
-1. Score de **risque crédit** sur 10 + 🔴🟡🟢
-2. **Recommandation de délai de paiement** : immédiat / 15j / 30j / 60j
-3. Synthèse d’expert (2-3 phrases pro, claires et sans jargon inutile)
-4. Conseil IA (précaution, alerte ou bonne pratique selon le cas)
-
-Réponds de façon lisible, structurée, avec des emojis si utiles, et une vraie valeur ajoutée.
+📣 Conseil IA :
+{"Entreprise fiable, délais standards conseillés." if "Pas de risque" in solvabilite else "Surveillance recommandée des délais de paiement."}
 """
+        return analysis
 
-    output = replicate_client.run(
-        "meta/llama-4-maverick-instruct",
-        input={"prompt": prompt, "max_new_tokens": 600}
-    )
-
-    return "".join(output)
+    except Exception as e:
+        return f"⚠️ Erreur lors de l'analyse : {str(e)}"
