@@ -1,0 +1,51 @@
+prompt = f"""
+Tu es un analyste crédit IA expert. Tu dois émettre une synthèse d'analyse crédit claire, lisible et structurée pour un décideur financier.
+
+Voici les données de l’entreprise à analyser :
+
+📌 Profil entreprise
+- Nom : {company_data['nom']}
+- SIREN : {company_data['siren']}
+- Forme : {company_data['forme_juridique']}
+- CA : {company_data['ca']} €
+- Résultat : {company_data['resultat']} €
+- Capitaux propres : {company_data['capitaux']} €
+- EBE : {company_data.get('EBE')}
+- Fonds propres : {company_data.get('FondsPr')}
+- Classe de risque : {company_data.get('classeRisque')}
+- Score S&D : {company_data.get('indiscore20')} (secteur : {company_data.get('indiscore20_secteur')})
+
+📊 Contexte commercial
+- Rôle : {company_data['relation']}
+- Historique paiement : {company_data['historique']}
+- Encours envisagé : {company_data['encours']} €
+- Délai souhaité : {company_data['delai_souhaite']}
+
+🧠 Autres indicateurs
+- Afdcc1 : {company_data.get('Afdcc1')}
+- ConanH : {company_data.get('ConanH')}
+- Délai client moyen : {company_data.get('DelaiCli')}
+- Délai fournisseur moyen : {company_data.get('DelaiFour')}
+
+🔎 Dirigeance & conformité
+- Analyse dirigeance : {company_data.get('AnalyseDirigeance')}
+- Conformité : {company_data.get('AnalyseConfor')}
+- Score conformité : {company_data.get('ScoreConfor')}
+- Info paiements : {company_data.get('infoPaiement', 'ND')}
+
+📬 Dernières actualités (veille marché) :
+{company_data.get('evenements_formates', '- Aucune info récente disponible')}
+
+---
+
+✍️ Ta mission :
+Structure ta réponse en **4 blocs Markdown** :
+1. 🎯 Score de risque : évalue le score sur 10 et indique un code couleur (vert = faible risque, orange = moyen, rouge = élevé)
+2. 📊 Analyse financière : résume la performance financière avec CA, résultat, EBE, BFR, capitaux, ratios, etc.
+3. ⏱️ Recommandation de paiement : indique si le paiement doit être comptant / 30j / 60j avec une justification claire.
+4. 🔐 Analyse de la gouvernance & conformité : synthétise la dirigeance, conformité et encours.
+
+En bonus : termine par une **phrase “veille marché”** si des événements récents sont détectés.
+
+Formate ta réponse de manière **pro** et **impactante** pour un DAF.
+"""
