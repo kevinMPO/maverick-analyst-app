@@ -20,7 +20,9 @@ if query:
         data = get_company_data(query)
         if data and data.get('siren'):
             scores_data = get_scores_decisions_data(data['siren'])
+            financial_data = get_financial_data(data['siren'], os.environ['SOCIETEINFO_API_KEY'])
             data.update(scores_data)
+            data.update(financial_data)
         
     if data:
         st.success("✅ Données récupérées")

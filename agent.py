@@ -40,10 +40,12 @@ Tu es un analyste crédit IA de niveau senior. Tu dois rendre une **synthèse co
 
 📊 **2. Analyse Financière Avancée**
 
-- CA : {company_data.get('ca')} €
-- Résultat : {company_data.get('resultat')} €
-- EBE : {company_data.get('EBE')} €
-- Fonds propres : {company_data.get('FondsPr')} €
+- CA : {company_data.get('ca')} € | Évolution : {company_data.get('evolution_ca', 'ND')}%
+- Résultat : {company_data.get('resultat')} € | Marge : {company_data.get('marge_nette', 'ND')}%
+- EBE : {company_data.get('EBE')} € | % CA : {company_data.get('taux_ebe', 'ND')}%
+- Fonds propres : {company_data.get('FondsPr')} € | Gearing : {company_data.get('gearing', 'ND')}
+- Trésorerie : {company_data.get('tresorerie', 'ND')} € | BFR : {company_data.get('bfr', 'ND')} €
+- Score Altman : {company_data.get('altman_score', 'ND')} | Conan-Holder : {company_data.get('conan_holder', 'ND')}
 - FR : {company_data.get('FR')} € / BFR : {company_data.get('BFR')} €
 - Délai clients : {company_data.get('DelaiCli')} j | Fournisseurs : {company_data.get('DelaiFour')} j
 - Afdcc1 : {company_data.get('Afdcc1')} | ConanH : {company_data.get('ConanH')}

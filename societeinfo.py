@@ -5,6 +5,20 @@ import os
 API_KEY = os.getenv("SOCIETEINFO_API_KEY")
 print(f"API Key loaded: {'Yes' if API_KEY else 'No'}")
 
+def get_financial_data(registration_number, api_key):
+    url = f"https://societeinfo.com/app/rest/api/v2/financial/statements.json/{registration_number}"
+    params = {"key": api_key}
+    
+    try:
+        res = requests.get(url, params=params, headers={"Accept": "application/json"}, timeout=5)
+        if res.status_code == 200:
+            return res.json().get("result", {})
+        print(f"Erreur API financials: {res.status_code}")
+        return {}
+    except Exception as e:
+        print(f"Erreur lors de l'appel financials: {str(e)}")
+        return {}
+
 def get_company_data(query):
     # Supporte la recherche par SIREN/SIRET ou nom d'entreprise
     url = "https://societeinfo.com/app/rest/api/v2/company.json"
