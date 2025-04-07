@@ -75,9 +75,12 @@ def get_main_recommendation(risk_level, data):
 def get_vigilance_points(data):
     """Identifie les points de vigilance"""
     points = []
-    if data.get('DelaiCli', 0) > 60:
+    delai_cli = data.get('DelaiCli')
+    fonds_propres = data.get('FondsPr')
+    
+    if delai_cli and float(delai_cli) > 60:
         points.append("Délais clients élevés")
-    if data.get('FondsPr', 0) < 0:
+    if fonds_propres and float(fonds_propres) < 0:
         points.append("Fonds propres négatifs")
     return " | ".join(points) if points else "RAS"
 
