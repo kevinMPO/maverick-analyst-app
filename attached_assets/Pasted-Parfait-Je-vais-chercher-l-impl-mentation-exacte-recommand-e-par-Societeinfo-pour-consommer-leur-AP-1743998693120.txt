@@ -1,0 +1,141 @@
+Parfait. Je vais chercher l’implémentation exacte recommandée par Societeinfo pour consommer leur API via SIREN/SIRET, avec un exemple de requête bien formée et les champs JSON à attendre. Je vais aussi vérifier s’il faut ajouter des headers spécifiques ou gérer des erreurs particulières.
+
+Je te reviens avec un exemple de code corrigé pour ton `societeinfo.py`, directement exploitable avec le bon endpoint.
+
+
+# Récupérer les données d'une entreprise avec l'API Societeinfo
+
+## Endpoint de l’API Societeinfo (SIREN/SIRET)
+Pour obtenir les informations détaillées d’une entreprise, Societeinfo fournit un endpoint **REST** spécifique. La requête doit être effectuée en HTTP GET vers l’URL : 
+
+```
+https://societeinfo.com/app/rest/api/v2/company.json
+``` 
+
+Il faut y **ajouter deux paramètres obligatoires** : 
+- `registration_number` – le numéro **SIREN (9 chiffres)** ou **SIRET (14 chiffres)** de l’entreprise cible  
+- `key` – votre **clé d’API Societeinfo** personnelle  
+
+Par exemple, une requête GET vers `.../company.json` avec un SIREN et la clé donnera l’URL : 
+
+```
+https://societeinfo.com/app/rest/api/v2/company.json?key=VOTRE_CLÉ_API&registration_number=NUMERO_SIREN
+``` 
+
+Ces deux paramètres sont requis pour l’appel ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=Param%C3%A8tre%20Defaut%20Optionnel%20Description%20key,possibles%20sont%20true%20ou%20false)). **Note** : Si vous fournissez un SIREN (9 chiffres), le service retourne les informations du **siège social** de l’entreprise. Si vous fournissez un SIRET (14 chiffres), il retourne les informations de cet **établissement** spécifique ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=Si%20le%20param%C3%A8tre%20registration_number%20est,le%20service%20retourne%20l%27%C3%A9tablissement)). L’extension `.json` dans l’URL garantit que la réponse sera formatée en JSON ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=Les%20r%C3%A9ponses%20peuvent%20%C3%AAtre%20g%C3%A9n%C3%A9r%C3%A9es,JSON%20ou%20au%20format%20XML)).
+
+## Exemple de requête
+Voici un **exemple de requête** utilisant `curl` avec la clé de démonstration `DEMO` fournie par Societeinfo et un SIREN d’entreprise (ici `702012931`) :
+
+```bash
+curl "https://societeinfo.com/app/rest/api/v2/company.json/702012931?key=DEMO"
+``` 
+
+Cette requête interroge l’API Societeinfo sur le SIREN **702012931** (société *Bataclan* dans cet exemple) et renverra les données détaillées correspondantes ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=curl%20)).  (Dans vos propres appels, remplacez `DEMO` par votre clé API, et utilisez le SIREN/SIRET de l’entreprise souhaitée.)
+
+## Structure du JSON retourné
+L’API retourne une réponse JSON contenant un indicateur de succès et les données de l’entreprise dans un objet `result`. Voici la structure générale de la réponse (exemple simplifié) :
+
+```json
+{
+    "success": true,
+    "result": {
+        "id": "58796f69b3a2806717d13c40",
+        "organization": {
+            "status": "Active",
+            "name": "SOC EXPLOITATION SPECTACLES BATACLAN",
+            "registration_number": "702012931",
+            "full_registration_number": "70201293100011",
+            "creation_date": "1970-01-01",
+            "capital": "100000",
+            "...": "..." 
+        },
+        "contacts": {
+            "main_corporate_officier": { "name": "...", "role": "Président", ... },
+            "email": "contact@bataclan.fr",
+            "..." : "..."
+        },
+        "web_infos": {
+            "website_url": "http://www.bataclan.fr",
+            "..." : "..."
+        },
+        "financials": {
+            "last_sales": 1752459,
+            "last_profit": 49868,
+            "last_staff": 6
+        }
+    }
+}
+``` 
+
+*Exemple partiel de réponse JSON pour une entreprise donnée (certaines sections sont tronquées).* Dans cet exemple, `success` est à `true` et l’objet `result` contient plusieurs sous-objets : **`organization`** (informations légales et administratives), **`contacts`** (contacts principaux de l’entreprise), **`web_infos`** (informations web/social), et **`financials`** (données financières) ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=%7B%20,0)) ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=%22creation_date%22%3A%221970,activity)). 
+
+Voici quelques-uns des **champs clés** renvoyés dans `result` et leur signification : 
+
+- **Dénomination** – `organization.name` : nom de l’entreprise (raison sociale) ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=organization,business_name%20Nom%20enseigne))  
+- **Forme juridique** – `organization.legal.name` : forme juridique de la société (SA, SAS, SARL, etc.) ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=organization,1%20%2037%20Forme%20juridique))  
+- **Numéros SIREN/SIRET** – `organization.registration_number` (SIREN) et `organization.full_registration_number` (SIRET) de l’entreprise ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=organization,1%20%2037%20Forme%20juridique))  
+- **Date de création** – `organization.creation_date` : date de constitution de l’entreprise ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=organization,Derni%C3%A8re%20mise%20%C3%A0%20jour%20l%C3%A9gale)) (au format YYYY-MM-DD)  
+- **Capital social** – `organization.capital` : capital social déclaré en euros ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=organization,Derni%C3%A8re%20mise%20%C3%A0%20jour%20l%C3%A9gale))  
+- **Adresse du siège** – `organization.address.*` : adresse postale (rue, code postal, ville, pays) du siège ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=organization,libell%C3%A9%20de%20la%20cat%C3%A9gorie%20INSEE))  
+- **Activité (code NAF/APE)** – `organization.activity.ape_code` et `organization.activity.ape_name` : code et libellé de l’activité principale (NAF/APE) ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=,ENTREPRENEUR%20DE))  
+- **Dirigeant principal** – `organization.contacts.main_corporate_officier.name` et `...role` : nom du dirigeant principal et intitulé de son mandat (par ex. Président) ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=organization,role%20Mandat))  
+- **Chiffre d’affaires** – `financials.last_sales` : dernier chiffre d’affaires annuel connu de l’entreprise ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=financials,last_staff%20Dernier%20effectif))  
+- **Résultat net** – `financials.last_profit` : dernier résultat net connu (bénéfice ou perte) ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=financials,last_staff%20Dernier%20effectif))  
+- **Effectif** – `financials.last_staff` : dernier effectif salarié connu (nombre d’employés) ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=financials,last_staff%20Dernier%20effectif))  
+- **Solvabilité (risque)** – `organization.risk.risk_level` : niveau de risque/solvabilité **0 à 4** du siège (0 = aucun risque identifié) avec `organization.risk.risk_level_description` pour la description textuelle ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=Champs%20Description%20Valeurs%20possibles%20organization,organization_status%20Statut)) (“Pas de risque identifié”, etc.)
+
+*Remarque:* De nombreux autres champs sont disponibles dans la réponse complète (par ex. **numéro TVA** intra-UE, **convention collective**, **établissements secondaires**, **emails génériques**, **présence web** sur LinkedIn/Twitter, historiques financiers par année, etc.). Vous pouvez adapter les paramètres de la requête selon vos besoins ; par exemple, ajouter `withEstablishments=true` inclura la liste détaillée des établissements secondaires de l’entreprise dans la réponse ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=withEstablishments%20false%20Oui%20Inclue%20les,Les%20valeurs%20possibles)).
+
+## Exemple de code Python (avec `requests`)
+Vous pouvez interroger l’API en Python en utilisant le module `requests`. Ci-dessous un exemple de code qui envoie la requête et traite la réponse :
+
+```python
+import requests
+
+API_KEY = "VOTRE_CLÉ_API"          # Insérez votre clé Societeinfo
+numero_siren = "702012931"         # SIREN ou SIRET de l'entreprise cible
+url = f"https://societeinfo.com/app/rest/api/v2/company.json?key={API_KEY}&registration_number={numero_siren}"
+
+try:
+    response = requests.get(url, headers={"Accept": "application/json"}, timeout=5)
+except requests.RequestException as e:
+    print(f"Erreur de connexion: {e}")
+    exit(1)
+
+if response.status_code == 200:
+    data = response.json()  # parse le JSON
+    if data.get("success"):
+        # Extraire quelques champs en exemple
+        entreprise = data["result"]["organization"]
+        print("Nom:", entreprise.get("name"))
+        print("Forme juridique:", entreprise.get("legal", {}).get("name"))
+        print("Date de création:", entreprise.get("creation_date"))
+        print("Capital social:", entreprise.get("capital"))
+        finances = data["result"].get("financials", {})
+        print("Chiffre d'affaires:", finances.get("last_sales"))
+        print("Résultat net:", finances.get("last_profit"))
+    else:
+        print("Entreprise non trouvée pour ce numéro.")
+else:
+    print(f"Erreur API {response.status_code}: {response.text}")
+```
+
+Dans cet exemple, on construit l’URL avec le SIREN et la clé, puis on effectue la requête GET. On définit un header `Accept: application/json` (par précaution pour demander du JSON) et un `timeout` pour ne pas bloquer indéfiniment. Si la réponse est réussie (code 200), on parse le JSON et on extrait quelques champs (nom, forme juridique, date de création, capital, CA, résultat net). Si `success` est `False` ou si l’entreprise n’est pas trouvée, on gère le cas en conséquence. En cas d’erreur HTTP (code autre que 200), on affiche le code et le message d’erreur renvoyé par l’API.
+
+## Bonnes pratiques (headers & gestion des erreurs)
+**Headers :** Assurez-vous d’inclure les en-têtes appropriés lors de vos requêtes. Par exemple, spécifier `Accept: application/json` garantit que le service renvoie du JSON (normalement assuré par l’URL en `.json`). Vous pouvez également ajouter un `User-Agent` personnalisé si nécessaire. **Ne divulguez jamais votre clé API en clair** dans du code public ; il est conseillé de la stocker dans une variable d’environnement ou un fichier de configuration.
+
+**Gestion des erreurs :** L’API Societeinfo renvoie des codes HTTP explicites en cas de problème, qu’il faut traiter dans votre code : 
+
+- **401 Unauthorized** – Clé API invalide ou manquante ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=401%20Unauthorized%20,trop%20vite%20%21%20Ralentissez)) (vérifiez que `key` est correcte).  
+- **403 Forbidden** – Accès refusé (par exemple, droits insuffisants ou quota épuisé) ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=401%20Unauthorized%20,trop%20vite%20%21%20Ralentissez)).  
+- **404 Not Found** – Aucune entreprise trouvée pour le SIREN/SIRET fourni (entité inconnue) ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=401%20Unauthorized%20,trop%20vite%20%21%20Ralentissez)).  
+- **429 Too Many Requests** – Taux de requêtes trop élevé (vous avez dépassé la limite autorisée) ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=401%20Unauthorized%20,trop%20vite%20%21%20Ralentissez)).  
+- **500 Internal Server Error** – Erreur côté serveur Societeinfo (réessayez plus tard).  
+
+En pratique, vérifiez toujours `response.status_code` après l’appel. Pour simplifier, vous pouvez utiliser `response.raise_for_status()`, qui lèvera une exception Python si le code n’est pas 200. Gérez ces exceptions pour informer correctement l’utilisateur (par ex. *« entreprise non trouvée »* pour un 404, *« authentification échouée »* pour un 401, etc.). Dans l’exemple Python ci-dessus, nous avons illustré un traitement simple en affichant un message d’erreur selon le cas.
+
+Enfin, respectez les limites d’utilisation de l’API : évitez d’envoyer trop de requêtes en rafale pour ne pas atteindre le rate limit (code 429). Au besoin, implémentez une temporisation entre les appels ou utilisez un mécanisme de cache des résultats. En suivant ces bonnes pratiques (vérification des codes HTTP, gestion du JSON retourné et usage adéquat des paramètres), vous pourrez consommer l’API Societeinfo de manière efficace et fiable pour obtenir toutes les données d’entreprise souhaitées. 
+
+**Sources :** Documentations officielles de l’API Societeinfo ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=curl%20)) ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=organization,registration_number%20N%C2%B0%20SIREN)) ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=financials,valeur%20de%20la%20source%20d%27effectif)) ([Documentation API | SocieteInfo](https://societeinfo.com/api-doc/#:~:text=401%20Unauthorized%20,trop%20vite%20%21%20Ralentissez)) et exemples fournis.

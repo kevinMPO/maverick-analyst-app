@@ -1,0 +1,88 @@
+Voici un message prêt à **copier-coller** dans Replit pour que ton agent comprenne exactement ce que tu veux faire :
+
+---
+
+Parfait. Je vais chercher l’implémentation exacte recommandée par Societeinfo pour consommer leur API via SIREN/SIRET, avec un exemple de requête bien formée et les champs JSON à attendre. Je veux que tu corriges mon fichier `societeinfo.py` en suivant les bonnes pratiques officielles.
+
+🔍 Voici les points à prendre en compte :
+
+1. **Utiliser ce endpoint** :  
+   ```
+   https://societeinfo.com/app/rest/api/v2/company.json?key=MA_CLÉ_API&registration_number=SIREN_OU_SIRET
+   ```
+
+2. **Inclure les headers utiles si nécessaire**, par exemple :  
+   ```python
+   headers = {
+       "Accept": "application/json"
+   }
+   ```
+
+3. **Gérer proprement les erreurs** :  
+   - 401 → clé API invalide  
+   - 404 → entreprise introuvable  
+   - 429 → trop de requêtes  
+   - etc.
+
+4. **Corriger le parsing JSON** : la réponse renvoie un objet `{ success: true, result: { ... } }`.  
+   Il faut donc extraire les données depuis `data["result"]["organization"]`, et les champs financiers depuis `data["result"]["financials"]`.
+
+5. **Exemple de champs à récupérer** :
+   - Nom → `organization["name"]`
+   - SIREN → `organization["registration_number"]`
+   - Forme juridique → `organization["legal"]["name"]`
+   - Date de création → `organization["creation_date"]`
+   - Capital → `organization["capital"]`
+   - Chiffre d'affaires → `financials["last_sales"]`
+   - Résultat → `financials["last_profit"]`
+   - Effectif → `financials["last_staff"]`
+   - Score de solvabilité → `organization["risk"]["risk_level_description"]`
+
+6. **Code Python à adapter dans `societeinfo.py`** :
+
+```python
+import requests
+import os
+
+API_KEY = os.getenv("SOCIETEINFO_API_KEY")
+
+def get_company_data(siren):
+    url = f"https://societeinfo.com/app/rest/api/v2/company.json"
+    params = {
+        "key": API_KEY,
+        "registration_number": siren
+    }
+
+    try:
+        res = requests.get(url, params=params, headers={"Accept": "application/json"}, timeout=5)
+        res.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Erreur de connexion à Societeinfo : {e}")
+        return None
+
+    data = res.json()
+    if not data.get("success") or "result" not in data:
+        print("Entreprise non trouvée.")
+        return None
+
+    org = data["result"]["organization"]
+    fin = data["result"].get("financials", {})
+
+    return {
+        "nom": org.get("name"),
+        "siren": org.get("registration_number"),
+        "forme": org.get("legal", {}).get("name"),
+        "creation": org.get("creation_date"),
+        "capital": org.get("capital"),
+        "ca": fin.get("last_sales", "ND"),
+        "resultat": fin.get("last_profit", "ND"),
+        "effectif": fin.get("last_staff", "ND"),
+        "solvabilite": org.get("risk", {}).get("risk_level_description", "ND")
+    }
+```
+
+🧠 Merci de mettre à jour le fichier `societeinfo.py` avec cette logique, en utilisant ce endpoint basé sur le SIREN/SIRET et en extrayant bien les champs `organization` et `financials`.
+
+---
+
+Une fois que tu colles ça dans Replit, l’agent saura exactement quoi faire pour te corriger le code ! Tu veux aussi que je te fasse un `main.py` de test ensuite ?
