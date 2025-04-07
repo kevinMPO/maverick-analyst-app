@@ -37,13 +37,25 @@ if analyze_button:
             with col4:
                 delai = st.selectbox("⏱️ Délai de paiement souhaité", 
                     ["Comptant", "15 jours", "30 jours", "60 jours"])
+            
+            st.markdown("### 📝 Commentaires additionnels")
+            commentaire = st.text_area("Ajoutez vos observations", height=100)
+            
+            info_paiement = st.text_area("ℹ️ Informations sur les paiements", height=100)
+            evenements = st.text_area("📰 Événements récents", placeholder="Ex: AG, modifications statutaires...", height=100)
+            
+            submit = st.button("🔍 Analyser", disabled=not (query and historique and encours > 0))
 
-            data.update({
-                "relation": relation,
-                "historique": historique,
-                "encours": encours,
-                "delai_souhaite": delai
-            })
+            if submit:
+                data.update({
+                    "relation": relation,
+                    "historique": historique,
+                    "encours": encours,
+                    "delai_souhaite": delai,
+                    "commentaire": commentaire,
+                    "infoPaiement": info_paiement,
+                    "evenements_formates": evenements
+                })
 
             with st.spinner("🧠 Analyse IA en cours..."):
                 result = analyze_company(data)
