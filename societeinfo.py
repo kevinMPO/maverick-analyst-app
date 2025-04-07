@@ -42,7 +42,7 @@ def get_company_data(query):
             "registration_number": query
         }
     else:
-        # Sinon on fait une recherche par nom
+        # Sinon on fait une recherche par nom mais cela ne marche pas
         params = {
             "key": API_KEY,
             "q": query
