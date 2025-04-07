@@ -12,7 +12,19 @@ def get_financial_data(registration_number, api_key):
     try:
         res = requests.get(url, params=params, headers={"Accept": "application/json"}, timeout=5)
         if res.status_code == 200:
-            return res.json().get("result", {})
+            data = res.json().get("result", {})
+            latest = data.get("statements", [{}])[0] if data.get("statements") else {}
+            
+            return {
+                "evolution_ca": latest.get("turnover_var"),
+                "marge_nette": latest.get("net_margin"),
+                "taux_ebe": latest.get("ebitda_margin"),
+                "gearing": latest.get("gearing"),
+                "tresorerie": latest.get("cash"),
+                "bfr": latest.get("working_capital"),
+                "altman_score": latest.get("altman_score"),
+                "conan_holder": latest.get("conan_holder")
+            }
         print(f"Erreur API financials: {res.status_code}")
         return {}
     except Exception as e:
