@@ -86,6 +86,7 @@ Scores & Prédictifs :
 
 ---
 
+"""Améliorer Prompt + Prévoir crewai"""
 🧠 **Analyse libre Maverick**
 
 Tu es libre d'apporter **une réflexion complémentaire**, comme un expert humain :
