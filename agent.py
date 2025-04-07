@@ -1,99 +1,90 @@
+
+import replicate
 import os
 
+REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
+replicate_client = replicate.Client(api_token=REPLICATE_API_TOKEN)
+
 def analyze_company(company_data):
-    """Analyse enrichie des données financières avec contexte commercial"""
-    try:
-        # Détermination du niveau de risque
-        risk_level = get_risk_level(company_data)
-        payment_advice = get_payment_advice(risk_level, company_data)
-
-        analysis = f"""
-> **{get_main_recommendation(risk_level, company_data)}**
+    prompt = f"""
+Tu es un analyste crédit IA de niveau senior. Tu dois rendre une **synthèse complète et professionnelle** à partir des données suivantes, sous forme de 5 blocs **structurés et argumentés**.
 
 ---
-🎯 **Analyse du Risque**
-- Indiscore S&D : **{company_data.get('indiscore20', 'ND')}** / 20
-- Niveau : **{risk_level}**
-- Classe de risque : {company_data.get('classeRisque', 'ND')}
-- Solvabilité : {company_data.get('solvabilite', 'ND')}
 
----
-📊 **Analyse Financière**
-- CA : {format_amount(company_data.get('ca'))}
-- Résultat net : {format_amount(company_data.get('resultat'))}
-- EBE : {format_amount(company_data.get('EBE'))}
-- Fonds propres : {format_amount(company_data.get('FondsPr'))}
-- Délai clients : {company_data.get('DelaiCli', 'ND')} jours
-- Délai fournisseurs : {company_data.get('DelaiFour', 'ND')} jours
-
----
-💳 **Recommandation Crédit**
-- ✅ **Délai préconisé : {payment_advice}**
-- 💶 Encours demandé : {format_amount(company_data.get('encours'))}
-- 📈 Historique : {company_data.get('historique', 'ND')}
-- ⚠️ Points de vigilance : {get_vigilance_points(company_data)}
-
----
-👔 **Gouvernance & Conformité**
+📌 **Contexte entreprise**
+- Nom : {company_data.get('nom')}
+- SIREN : {company_data.get('siren')}
+- Secteur : {company_data.get('LibSecteur')}
+- Forme juridique : {company_data.get('forme')}
 - Dirigeance : {company_data.get('AnalyseDirigeance', 'ND')}
-- Score conformité : {company_data.get('ScoreConfor', 'ND')}
-- Analyse conformité : {company_data.get('AnalyseConfor', 'ND')}
+
+📂 **Relation commerciale**
+- Rôle : {company_data.get('role')}
+- Historique paiement : {company_data.get('historique')}
+- Encours actuel : {company_data.get('encours')} €
+- Délai souhaité : {company_data.get('delaiSouhaite')}
+- Commentaire utilisateur : {company_data.get('commentaire')}
+- Info paiement : {company_data.get('paiement_info')}
 
 ---
-📰 **Événements Significatifs**
-{company_data.get('evenements_formates', 'Aucun événement significatif à signaler.')}
+
+🎯 **1. Score de Risque**
+
+- Classe risque : {company_data.get('classeRisque')} /10
+- Indiscore S&D : {company_data.get('Indiscore20')} /20
+- Indiscore secteur : {company_data.get('Indiscore20_secteur')}
+- Score conformité : {company_data.get('ScoreConfor')} ({company_data.get('AnalyseConfor')})
+- Code couleur recommandé (🟢🟡🔴)
+
+---
+
+📊 **2. Analyse Financière Avancée**
+
+- CA : {company_data.get('ca')} €
+- Résultat : {company_data.get('resultat')} €
+- EBE : {company_data.get('EBE')} €
+- Fonds propres : {company_data.get('FondsPr')} €
+- FR : {company_data.get('FR')} € / BFR : {company_data.get('BFR')} €
+- Délai clients : {company_data.get('DelaiCli')} j | Fournisseurs : {company_data.get('DelaiFour')} j
+- Afdcc1 : {company_data.get('Afdcc1')} | ConanH : {company_data.get('ConanH')}
+
+---
+
+💳 **3. Recommandation Paiement**
+
+- Délai recommandé (comptant / 30j / 60j)
+- Justification claire (solvabilité, historique, encours, structure)
+- Mention de toute alerte ou réserve éventuelle
+
+---
+
+👔 **4. Gouvernance & Conformité**
+
+- Dirigeance : {company_data.get('AnalyseDirigeance')}
+- Conformité : {company_data.get('AnalyseConfor')} ({company_data.get('ScoreConfor')} /100)
+- Remarques éventuelles sur les encours, signaux faibles ou alertes légales
+
+---
+
+📰 **5. Veille Marché**
+
+{company_data.get('evenement_info', '- Aucun événement récent détecté.')}
+
+---
+
+🧠 **Analyse libre Maverick**
+
+Tu es libre d'apporter **une réflexion complémentaire**, comme un expert humain :
+- Un angle d'analyse original ?
+- Une alerte ?
+- Une opportunité ?
+- Un commentaire sur le timing ou le secteur ?
+**Agis en stratège. Surprends-moi.**
 """
-        return analysis
-    except Exception as e:
-        return f"⚠️ Erreur lors de l'analyse : {str(e)}"
 
-def get_risk_level(data):
-    """Détermine le niveau de risque avec emoji"""
-    if "Pas de risque" in data.get('solvabilite', ''):
-        return "Faible 🟢"
-    elif "Risque faible" in data.get('solvabilite', ''):
-        return "Modéré 🟡"
-    return "Élevé 🔴"
+    output = replicate_client.run(
+        "meta/llama-4-maverick-instruct",
+        input={"prompt": prompt, "max_new_tokens": 800}
+    )
 
-def get_payment_advice(risk_level, data):
-    """Détermine le délai de paiement recommandé"""
-    if risk_level == "Faible 🟢" and data.get('historique') == "Bonne expérience":
-        return "60 jours"
-    elif risk_level == "Modéré 🟡":
-        return "30 jours avec suivi"
-    return "Comptant"
-
-def get_main_recommendation(risk_level, data):
-    """Génère la recommandation principale"""
-    encours = data.get('encours', 0)
-    if "Faible" in risk_level:
-        return f"Favorable à l'encours de {format_amount(encours)}"
-    elif "Modéré" in risk_level:
-        return f"Accord sous conditions pour {format_amount(encours)}"
-    return "Refus conseillé - Risque élevé"
-
-def get_vigilance_points(data):
-    """Identifie les points de vigilance"""
-    points = []
-    delai_cli = data.get('DelaiCli')
-    fonds_propres = data.get('FondsPr')
-    
-    if delai_cli and float(delai_cli) > 60:
-        points.append("Délais clients élevés")
-    if fonds_propres and float(fonds_propres) < 0:
-        points.append("Fonds propres négatifs")
-    return " | ".join(points) if points else "RAS"
-
-def format_amount(amount):
-    """Formate les montants en k€ ou M€"""
-    try:
-        if not amount or amount == "ND":
-            return "ND"
-        amount = float(amount)
-        if amount >= 1000000:
-            return f"{amount/1000000:.1f}M€"
-        elif amount >= 1000:
-            return f"{amount/1000:.0f}k€"
-        return f"{amount:.0f}€"
-    except:
-        return "ND"
+    return "".join(output)
